@@ -1,6 +1,6 @@
 # Calendar functionality for AEM Community Events
 
-The events listed in Recent Recordings section of AEM.live community: `[text](https://www.aem.live/community#recent-recordings)` are dynamically fetched from `community-feeds.json` present in the content source of the site.
+The events listed in Recent Recordings section of AEM.live community: [https://www.aem.live/community#recent-recordings](https://www.aem.live/community#recent-recordings) are dynamically fetched from `community-feeds.json` present in the content source of the site.
 
 ## Workflow:
 1. Author adds an event to Google Calendar and sends an invite to join the event on Discord.
