@@ -15,23 +15,26 @@ The events listed in Recent Recordings section of AEM.live community: [https://w
 
 **Zap Workflow Steps**
 
-_Steps 1 (Checks addition of new event to Google Calendar):_
+**_Step 1 (Checks addition of new event to Google Calendar):_**
 
-![image](https://github.com/user-attachments/assets/08fd5b77-ee1b-40f7-b656-d90d366d45af)
+![image](https://github.com/user-attachments/assets/c2fe137a-605e-472d-933d-343c89e66d93)
 
 ![Screenshot 2025-01-29 at 17 20 58](https://github.com/user-attachments/assets/93707862-a3e9-479e-b24a-7619aa8ad1a5)
 
-_Stage 2 (Adds a new row to  helix-upcoming worksheet of `community-feeds` worksheet):_
+**_Step 2 (Adds a new row to  helix-upcoming worksheet of `community-feeds` worksheet):_**
+
 ![Screenshot 2025-01-29 at 17 23 07](https://github.com/user-attachments/assets/2d332186-dda5-474a-887f-3c39a6c40efc)
 
 ![Screenshot 2025-01-29 at 17 23 49](https://github.com/user-attachments/assets/7978b9e0-2a75-4bdc-a580-9a9e6661df12)
 
-_Step 3 (Previews the spreadsheet):_
+**_Step 3 (Previews the spreadsheet):_**
+
 ![Screenshot 2025-01-29 at 17 12 55](https://github.com/user-attachments/assets/56d2088c-cb2c-4105-8418-a750dabb712d)
 
 ![Screenshot 2025-01-29 at 17 13 11](https://github.com/user-attachments/assets/2f2b0490-bc1d-4e12-8464-6fd53e47e756)
 
-_Step 4 (Publishes the spreadsheet):_
+**_Step 4 (Publishes the spreadsheet):_**
+
 ![Screenshot 2025-01-29 at 17 13 44](https://github.com/user-attachments/assets/eae4793a-3f5d-47c9-97d6-a19def9e411f)
 
 ![Screenshot 2025-01-29 at 17 13 58](https://github.com/user-attachments/assets/1eaeac10-aa91-4f9c-b17f-4405e2475b2d)
@@ -43,22 +46,26 @@ _Step 4 (Publishes the spreadsheet):_
 
 **Zap Workflow Steps:**
 
-_Step 1 (Monitors the YouTube channel for any new video):_
+**_Step 1 (Monitors the YouTube channel for any new video):_**
+
 ![Screenshot 2025-01-29 at 17 09 52](https://github.com/user-attachments/assets/d95d3239-1c6b-4f43-be81-089433602241)
 
 ![image](https://github.com/user-attachments/assets/0021dc85-396c-465e-b619-1b51d1f333a8)
 
-_Step 2 (Adds details of video in youtube worksheet of `community-feeds` worksheet):_
-![Screenshot 2025-01-29 at 17 11 58](https://github.com/user-attachments/assets/ff721691-a7fd-4761-adb2-91a0f4c324b2)
+**_Step 2 (Adds a new row with video details to youtube worksheet of `community-feeds` worksheet):_**
+
+![Screenshot 2025-01-29 at 17 28 09](https://github.com/user-attachments/assets/1e67efd2-d929-422d-a17a-b170ce74f4ba)
 
 ![Screenshot 2025-01-29 at 17 12 26](https://github.com/user-attachments/assets/1ecddb13-34ef-4ab8-8ff1-75aaa519de00)
 
-_Step 3 (Previews the spreadsheet):_
+**_Step 3 (Previews the spreadsheet):_**
+
 ![Screenshot 2025-01-29 at 17 12 55](https://github.com/user-attachments/assets/56d2088c-cb2c-4105-8418-a750dabb712d)
 
 ![Screenshot 2025-01-29 at 17 13 11](https://github.com/user-attachments/assets/2f2b0490-bc1d-4e12-8464-6fd53e47e756)
 
-_Step 4 (Publishes the spreadsheet):_
+**_Step 4 (Publishes the spreadsheet):_**
+
 ![Screenshot 2025-01-29 at 17 13 44](https://github.com/user-attachments/assets/eae4793a-3f5d-47c9-97d6-a19def9e411f)
 
 ![Screenshot 2025-01-29 at 17 13 58](https://github.com/user-attachments/assets/1eaeac10-aa91-4f9c-b17f-4405e2475b2d)
