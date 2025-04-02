@@ -939,3 +939,25 @@ facet-sidebar[aria-disabled="true"] div.quick-filter {
 footer.footer-wrapper.appear {
   display: none;
 }
+
+.insights-icon {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 8px;
+}
+
+.insights-icon:hover {
+  color: #000;
+}
+
+.insights-icon svg {
+  width: 24px;
+  height: 24px;
+}
