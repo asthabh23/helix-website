@@ -1,4 +1,25 @@
-.rum-chat-container .chat-interface {
+.rum-chat-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 800px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 10%);
+  z-index: 1000;
+  transform: translateY(100%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.rum-chat-container.show {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+}
+
+.chat-interface {
   width: 80%;
   max-width: 1200px;
   margin: 20px auto;
@@ -9,28 +30,6 @@
   display: flex;
   flex-direction: column;
   position: relative;
-}
-  
-
-.rum-chat-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 500px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  transform: translateY(50%);
-  opacity: 0;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-  display: none;
-}
-
-.rum-chat-container.show {
-  transform: translateY(0);
-  opacity: 1;
-  display: block;
 }
 
 .rum-chat-container .chat-interface {
@@ -47,7 +46,7 @@
 } */
 
 .rum-chat-container #messages {
-  height: 300px;
+  height: 800px;
   overflow-y: auto;
   margin-bottom: 15px;
   padding: 10px;
@@ -107,7 +106,7 @@
 }
 
 .suggestions-area h3 {
-  margin: 0 0 10px 0;
+  margin: 0 0 10px;
   font-size: 14px;
   color: #666;
 }
@@ -143,34 +142,40 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
+  padding: 10px 15px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .chat-header h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: 18px;
   color: #333;
 }
 
-.close-button {
+.close-button,
+.test-button {
   background: none;
   border: none;
-  padding: 8px;
   cursor: pointer;
-  color: #666;
-  transition: color 0.2s ease;
+  padding: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #666;
+  transition: color 0.2s;
 }
 
-.close-button:hover {
-  color: #000;
+.close-button:hover,
+.test-button:hover {
+  color: #333;
 }
 
-.close-button svg {
+.close-button svg, .test-button svg {
   width: 20px;
   height: 20px;
+}
+
+.test-button {
+  margin-right: 10px;
 }

@@ -149,7 +149,7 @@ main .title url-selector input {
   color: var(--spectrum-gray-700);
 }
 
-.title button {
+.title button:not(.insights-icon) {
   color: var(--dark-blue);
   border: 2px solid currentcolor;
   border-radius: 32px;
@@ -1277,4 +1277,21 @@ facet-sidebar[aria-disabled="true"] div.quick-filter {
 
 footer.footer-wrapper.appear {
   display: none;
+}
+
+.insights-icon {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 8px;
+}
+
+.insights-icon svg {
+  width: 24px;
+  height: 24px;
 }
