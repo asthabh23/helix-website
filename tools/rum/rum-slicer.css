@@ -127,7 +127,7 @@ main .title url-selector input {
   color: var(--spectrum-gray-700);
 }
 
-.title button {
+.title button:not(.insights-icon) {
   color: var(--dark-blue);
   border: 2px solid currentcolor;
   border-radius: 32px;
@@ -945,16 +945,11 @@ footer.footer-wrapper.appear {
   border: none;
   padding: 8px;
   cursor: pointer;
-  color: #666;
   transition: color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 8px;
-}
-
-.insights-icon:hover {
-  color: #000;
 }
 
 .insights-icon svg {
