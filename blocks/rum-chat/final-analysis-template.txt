@@ -1,0 +1,257 @@
+NUMBER FORMATTING: Use appropriate suffixes for large numbers:
+- 1,000+ = 1K, 1.2K, 15K, etc.
+- 1,000,000+ = 1M, 1.2M, 295M, etc.  
+- 1,000,000,000+ = 1B, 1.2B, 5.7B, etc.
+Examples: "Traffic Volume: 295M sessions" instead of "Traffic Volume: 295,109,000"
+
+🌐 SITE OVERVIEW & CONTEXT
+
+WEBSITE ANALYSIS:
+
+Site Type: [E-commerce/SaaS/Content/etc based on dashboard data]
+Traffic Volume: [Actual session/user numbers with K/M/B suffixes]
+Primary User Base: [Geographic/demographic insights from data]
+Key Features: [Main functionality observed from user flows]
+
+
+📊 CURRENT PERFORMANCE METRICS
+
+[Extract actual metrics from dashboard data, format large numbers with K/M/B suffixes:]
+Total User Sessions: [actual numbers with suffixes - e.g., 295M sessions]
+Media Engagement Rate: [actual numbers with suffixes]
+Media views: [formatted numbers]
+Fragment Loads: [formatted numbers]
+Top Traffic Sources: [actual referrer data]
+Device Breakdown: [mobile vs desktop percentages]
+Platform Split
+
+👥 USER EXPERIENCE IMPACT
+
+🔥 CRITICAL PERFORMANCE BOTTLENECK
+
+Issue: [Most critical problem found]
+Business Impact: $[revenue impact with K/M/B] annually
+User Segment: [percentage]% of [specific segment] ([actual user count with K/M/B])
+Pain Point: [specific user frustration]
+
+📊 Impact Visualization:
+Revenue Loss    ████████████████████░░░░░░░░ 80%
+User Frustration ██████████████████░░░░░░░░░░ 75%
+Bounce Rate     ████████████████░░░░░░░░░░░░ 65%
+
+💡 Solution: [Specific technical fix]
+📈 ROI: [Expected improvement] → $[revenue recovery with K/M/B]
+
+---
+
+🖱️ USER BEHAVIOR DEEP DIVE
+
+CLICK PATTERN ANALYSIS:
+Most Clicked Elements:
+1. [CSS selector] - [click count with K/M/B] clicks ([percentage]% of total)
+2. [CSS selector] - [click count with K/M/B] clicks ([percentage]% of total)
+3. [CSS selector] - [click count with K/M/B] clicks ([percentage]% of total)
+
+Underperforming Elements:
+• [Element] - Low engagement despite prominence
+• [Element] - High bounce rate after interaction
+
+Click Destinations:
+Top Targets: [URL patterns and their performance]
+Problem Areas: [URLs with high exit rates]
+
+CONTENT ENGAGEMENT INSIGHTS:
+Block Performance:
+• [Block/component] - [view count with K/M/B] views, [engagement metric]
+• [Block/component] - [view count with K/M/B] views, [engagement metric]
+
+Media Engagement:
+• [Media type/source] - [view count with K/M/B] views, [engagement rate]
+• [Media type/source] - [view count with K/M/B] views, [engagement rate]
+
+---
+
+🌐 TRAFFIC ACQUISITION BREAKDOWN
+
+EXTERNAL TRAFFIC SOURCES:
+1. [Referrer domain] - [session count with K/M/B] sessions ([conversion rate]%)
+2. [Referrer domain] - [session count with K/M/B] sessions ([conversion rate]%)
+3. [Referrer domain] - [session count with K/M/B] sessions ([conversion rate]%)
+
+Quality Assessment:
+High Value: [Source] - [why it's valuable]
+Low Value: [Source] - [performance issues]
+
+INTERNAL NAVIGATION PATTERNS:
+Popular Paths:
+• [Source page] → [Destination] - [navigation count with K/M/B] flows
+• [Source page] → [Destination] - [navigation count with K/M/B] flows
+
+Navigation Issues:
+• [Problem area] - [specific issue and impact]
+
+---
+
+🚨 TECHNICAL ERROR ANALYSIS
+
+JAVASCRIPT ERROR BREAKDOWN:
+Error Sources:
+1. [File/script path] - [error count with K/M/B] errors ([percentage]% of total)
+   Impact: [affected sessions with K/M/B] sessions, [business impact]
+   
+2. [File/script path] - [error count with K/M/B] errors ([percentage]% of total)
+   Impact: [affected sessions with K/M/B] sessions, [business impact]
+
+Error Messages:
+• [Specific error] - [frequency with K/M/B] occurrences
+• [Specific error] - [frequency with K/M/B] occurrences
+
+Error-Performance Correlation:
+Pages with errors: [performance impact]
+Error-free pages: [baseline performance]
+
+RESOURCE LOADING ISSUES:
+Slow Resources:
+• [Resource path] - [load time] average load time
+• [Resource path] - [load time] average load time
+
+Failed Resources:
+• [Resource] - [failure rate]% failure rate
+
+---
+
+⚡ PERFORMANCE TREND ANALYSIS
+
+📊 [METRIC 1 NAME]
+   Current: [current value]     Target: [target value]
+   Gap: [gap amount]           Impact: [business impact with K/M/B]
+   ████████░░░░░░░░░░ [percentage]% of target
+
+📊 [METRIC 2 NAME]  
+   Current: [current value]     Target: [target value]
+   Gap: [gap amount]           Impact: [business impact with K/M/B]
+   ██████░░░░░░░░░░░░ [percentage]% of target
+
+📊 [METRIC 3 NAME]
+   Current: [current value]     Target: [target value]
+   Gap: [gap amount]           Impact: [business impact with K/M/B]
+   ███████████░░░░░░░ [percentage]% of target
+
+🎯 Root Cause: [Technical explanation]
+🔧 Fix Strategy: [Implementation approach]
+
+---
+
+📱 USER JOURNEY BREAKDOWN
+
+Desktop Users (XX%):     ████████████░░░░░░░░ [performance level]
+Mobile Users (XX%):      ██████░░░░░░░░░░░░░░ [performance level]  
+Tablet Users (XX%):      ██████████░░░░░░░░░░ [performance level]
+
+Worst Affected: [Device/segment] - [specific issue]
+Business Cost: [conversion impact with K/M/B] | User Frustration: [experience description]
+Quick Win: [immediate action] → [expected result]
+
+---
+
+🌍 GEOGRAPHIC PERFORMANCE HEATMAP
+
+Region          Performance    Users     Revenue Impact
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Region 1]      ████████░░     XX%       $[amount with K/M/B] at risk
+[Region 2]      ██████░░░░     XX%       $[amount with K/M/B] at risk  
+[Region 3]      ███████░░░     XX%       $[amount with K/M/B] at risk
+[Region 4]      █████░░░░░     XX%       $[amount with K/M/B] at risk
+
+Insight: [Geographic pattern explanation]
+Action: [Targeted solution] | Priority: [High/Medium/Low]
+
+---
+
+🔍 HIDDEN CORRELATION DISCOVERY
+
+When [condition A] AND [condition B]:
+├── Performance drops by [percentage]%
+├── Error rate increases [X]x
+└── User satisfaction decreases [percentage]%
+
+Pattern: [Correlation explanation]
+Business Risk: [specific business impact with K/M/B]
+Solution Path:
+Step 1: [immediate action]
+Step 2: [follow-up action]  
+Step 3: [long-term fix]
+
+Expected Outcome: [measurable improvement]
+
+---
+
+🔎 ADDITIONAL INSIGHTS & ANOMALIES
+
+NOTABLE FINDINGS:
+⚠️ [Unusual pattern or anomaly discovered in the data]
+   Context: [Why this is significant]
+   Impact: [Business or user experience implications with K/M/B]
+   Investigation: [What should be explored further]
+
+🔍 DATA GAPS & LIMITATIONS:
+• [Any missing data segments or measurement blind spots]
+• [Segments with insufficient sample sizes]
+• [Potential data quality issues or inconsistencies]
+
+💡 EMERGING OPPORTUNITIES:
+• [Untapped optimization potential discovered]
+• [New user segments or behaviors identified]
+• [Technology or infrastructure improvements needed]
+
+🚨 RED FLAGS:
+• [Warning signs or concerning trends]
+• [Potential security or stability issues]
+• [User experience degradation patterns]
+
+📈 COMPETITIVE ADVANTAGES:
+• [Areas where performance exceeds industry standards]
+• [Unique user engagement patterns]
+• [Technical implementations working exceptionally well]
+
+🔮 PREDICTIVE INSIGHTS:
+• [Trends that suggest future issues or opportunities]
+• [Seasonal or cyclical patterns observed]
+• [Growth trajectory implications]
+
+---
+
+🚀 QUICK WINS (Low Effort, High Impact)
+
+✅ [Quick optimization 1] → [Expected improvement with K/M/B]
+✅ [Quick optimization 2] → [Expected improvement with K/M/B]  
+✅ [Quick optimization 3] → [Expected improvement with K/M/B]
+
+🎯 ACTIONABLE RECOMMENDATIONS
+
+IMMEDIATE ACTIONS:
+🔴 Priority 1: [Specific action with clear steps]
+   Steps: [1. Do this, 2. Then this, 3. Finally this]
+   Impact: [Measurable outcome with K/M/B]
+
+🟡 Priority 2: [Second most important action]
+   Steps: [Clear implementation steps]
+   Impact: [Expected result with K/M/B]
+
+STRATEGIC IMPROVEMENTS:
+🟢 Long-term: [Strategic improvement]
+   Approach: [How to implement]
+   Resources: [What's needed]
+
+Use actual data from your analysis. Extract real metrics from the dashboard and calculate realistic business opportunities.
+
+IMPORTANT: Base ALL analysis on real data present on the dashboard. Do not use hypothetical examples or placeholder values. Only report findings that you can verify from the actual dashboard data provided.
+
+PERFORMANCE SCORE INTERPRETATION: When performance scores (like Core Web Vitals) are missing or not displayed for certain pages/segments, this indicates insufficient sample size to calculate reliable scores, NOT missing performance data. In your analysis:
+- Note which pages/segments have sufficient traffic for performance scoring
+- Identify low-traffic pages that lack performance scores due to sample size
+- Focus performance analysis on segments with adequate data
+- Don't conclude that "performance data is missing" when scores aren't shown
+
+ANALYSIS DATA:
+{ANALYSIS_DATA} 
