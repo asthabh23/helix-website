@@ -1,13 +1,14 @@
 .rum-chat-container {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 1000px;
+  top: var(--nav-height); /* Start below the site header */
+  right: 0;
+  width: 30vw;
+  height: calc(100vh - var(--nav-height)); /* Adjust height to account for header */
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgb(0 0 0 / 10%);
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -2px 0 10px rgb(0 0 0 / 10%);
   z-index: 1000;
-  transform: translateY(100%);
+  transform: translateX(100%);
   opacity: 0;
   visibility: hidden;
   transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
@@ -15,20 +16,139 @@
 }
 
 .rum-chat-container.show {
-  transform: translateY(0);
+  transform: translateX(0);
   opacity: 1;
   visibility: visible;
-  animation: slide-in-with-magic 0.5s ease-out;
+  animation: slide-in-from-right 0.5s ease-out;
+}
+
+/* Ensure smooth transitions when sidebar is closed */
+main {
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), padding-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), margin-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+#deepmain {
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), padding-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), margin-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Adjust main content when sidebar is open */
+body:has(.rum-chat-container.show) main {
+  width: 70vw;
+  padding-right: 40px; /* Increased padding to prevent content cutoff */
+  margin-right: 10px; /* Additional margin for extra spacing */
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), padding-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), margin-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+body:has(.rum-chat-container.show) #deepmain {
+  width: 70vw;
+  padding-right: 40px; /* Increased padding to prevent content cutoff */
+  margin-right: 10px; /* Additional margin for extra spacing */
+  transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), padding-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), margin-right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Override the existing split mode for insights */
+@media (width >= 1600px) {
+  body:has(.rum-chat-container.show) main {
+    padding-right: 40px; /* Maintain padding at larger screens */
+    margin-right: 10px; /* Maintain margin at larger screens */
+  }
+
+  body:has(.rum-chat-container.show) #deepmain {
+    padding-right: 40px; /* Maintain padding at larger screens */
+    margin-right: 10px; /* Maintain margin at larger screens */
+  }
+
+  body:has(.rum-chat-container.show) facet-sidebar {
+    margin-left: calc(35vw + 16px);
+  }
+
+  body:has(.rum-chat-container.show) #deepmain > div,
+  body:has(.rum-chat-container.show) #deepmain > facet-sidebar {
+    width: calc(35vw - 8px);
+  }
+
+  body:has(.rum-chat-container.show) main div.output {
+    width: 35vw;
+    padding-right: 40px; /* Maintain padding for output */
+    margin-right: 10px; /* Maintain margin for output */
+  }
+}
+
+/* When insights sidebar is open and remaining 70% is less than 1400px, 
+   fall back to default responsive behavior (facet sidebar below main content) */
+@media (width >= 1600px) and (width <= 2000px) {
+  /* At 2000px viewport, 70% = 1400px, so below 2000px we should fall back */
+  body:has(.rum-chat-container.show) main {
+    padding-right: 40px; /* Maintain padding in fallback mode */
+    margin-right: 10px; /* Maintain margin in fallback mode */
+  }
+
+  body:has(.rum-chat-container.show) #deepmain {
+    display: block; /* Override the flex layout */
+    height: auto; /* Reset height constraint */
+    padding-right: 40px; /* Maintain padding in fallback mode */
+    margin-right: 10px; /* Maintain margin in fallback mode */
+  }
+
+  body:has(.rum-chat-container.show) facet-sidebar {
+    margin-left: 0; /* Reset margin */
+    margin-top: 16px; /* Add some spacing above facet sidebar */
+  }
+
+  body:has(.rum-chat-container.show) #deepmain > div,
+  body:has(.rum-chat-container.show) #deepmain > facet-sidebar {
+    width: 70vw; /* Full width of remaining space */
+  }
+
+  body:has(.rum-chat-container.show) main div.output {
+    position: static; /* Reset fixed positioning */
+    width: 70vw;
+    padding-right: 40px; /* Maintain padding for output */
+    margin-right: 10px; /* Maintain margin for output */
+  }
+}
+
+/* Only maintain side-by-side layout when viewport is large enough 
+   that 70% is at least 1400px (viewport >= ~2000px) */
+@media (width >= 2000px) {
+  body:has(.rum-chat-container.show) main {
+    padding-right: 40px; /* Maintain padding at very large screens */
+    margin-right: 10px; /* Maintain margin at very large screens */
+  }
+
+  body:has(.rum-chat-container.show) #deepmain {
+    display: flex; /* Restore flex layout for large screens */
+    gap: 16px;
+    height: calc(100vh - var(--nav-height) - 32px);
+    padding-right: 40px; /* Maintain padding at very large screens */
+    margin-right: 10px; /* Maintain margin at very large screens */
+  }
+
+  body:has(.rum-chat-container.show) facet-sidebar {
+    margin-left: calc(35vw + 16px);
+    margin-top: 0;
+  }
+
+  body:has(.rum-chat-container.show) #deepmain > div,
+  body:has(.rum-chat-container.show) #deepmain > facet-sidebar {
+    width: calc(35vw - 8px);
+  }
+
+  body:has(.rum-chat-container.show) main div.output {
+    position: fixed;
+    width: 35vw;
+    padding-right: 40px; /* Maintain padding for output */
+    margin-right: 10px; /* Maintain margin for output */
+  }
 }
 
 .chat-interface {
-  width: 80%;
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 15px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  max-height: 80vh;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  border: none;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -45,34 +165,90 @@
 
 .rum-chat-container .api-key-section {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
+  margin-bottom: 8px;
 }
 
-.rum-chat-container .analysis-section {
-  margin-left: auto;
-  position: relative;
+.rum-chat-container .api-key-input {
   display: flex;
-  flex-direction: row;
-  align-items: flex-end;
+  align-items: center;
+  gap: 12px;
 }
 
-.rum-chat-container .analysis-section .cache-status {
-  max-width: 300px;
-  text-align: right;
-  word-wrap: break-word;
-  white-space: normal;
+.rum-chat-container .api-key-input label {
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.rum-chat-container .api-key-input input[type="password"] {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 15px;
+  min-width: 180px;
+  flex: 1;
+}
+
+.rum-chat-container .api-key-input button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  background: #e0e0e0;
+  color: #666;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .rum-chat-container .analysis-section button {
-  height: 100%;
+  width: 100%;
+  height: 44px;
+  min-width: 120px;
+  font-size: 16px;
+  font-weight: 600;
+  background: #fff;
+  border: 1.5px solid #bbb;
+  border-radius: 6px;
+  color: #222;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+  transition: background 0.2s, border-color 0.2s;
 }
 
-.rum-chat-container .analysis-section button:hover {
-  cursor: pointer;
+.rum-chat-container .api-key-input button:disabled {
+  background: #f0f0f0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.rum-chat-container .api-key-input button:not(:disabled):hover {
+  background: #d0d0d0;
+}
+
+.rum-chat-container .analysis-section {
+  margin-left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+.rum-chat-container .analysis-section button:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #888;
 }
 
 .rum-chat-container #messages {
-  height: 800px;
+  height: calc(100vh - 200px);
   overflow-y: auto;
   margin-bottom: 15px;
   padding: 10px;
@@ -167,21 +343,28 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
-  background-color: #f5f5f5;
+  padding: 15px 20px;
+  background-color: #f8f9fa;
   border-bottom: 1px solid #e0e0e0;
+  min-height: 60px;
+  position: relative;
+  z-index: 10;
 }
 
 .chat-header h2 {
   margin: 0;
   font-size: 18px;
   color: #333;
+  font-weight: 600;
 }
 
 .header-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 11;
 }
 
 .download-button {
@@ -192,7 +375,13 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+  font-weight: 500;
   transition: background-color 0.2s;
+  white-space: nowrap;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .download-button:disabled {
@@ -207,15 +396,22 @@
 
 .close-button,
 .test-button {
-  background: none;
-  border: none;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
   cursor: pointer;
-  padding: 5px;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #666;
-  transition: color 0.2s;
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+  border-radius: 4px;
+  font-size: 18px;
+  font-weight: bold;
+  min-width: 32px;
+  min-height: 32px;
+  position: relative;
+  z-index: 12;
 }
 
 .test-button {
@@ -224,7 +420,15 @@
 
 .close-button:hover,
 .test-button:hover {
+  background: #e9e9e9;
+  border-color: #bbb;
   color: #333;
+}
+
+.close-button:active,
+.test-button:active {
+  background: #ddd;
+  transform: scale(0.95);
 }
 
 .close-button svg, .test-button svg {
@@ -322,22 +526,38 @@
 /* Responsive adjustments */
 @media (width <= 768px) {
   .rum-chat-container {
-    width: 95vw;
-    right: 2.5vw;
-    bottom: 10px;
+    width: 100vw;
+    height: 100vh;
+    border-left: none;
+    box-shadow: none;
   }
-  
+
+  body:has(.rum-chat-container.show) main {
+    width: 0;
+    overflow: hidden;
+  }
+
+  body:has(.rum-chat-container.show) #deepmain {
+    width: 0;
+    overflow: hidden;
+  }
+
+  .rum-chat-container #messages {
+    height: calc(100vh - 150px);
+  }
+
   .message table {
-    font-size: 10px;
+    font-size: 12px;
   }
-  
+
   .message table th,
   .message table td {
-    padding: 2px 4px;
+    padding: 4px;
   }
-  
+
   .message pre {
-    font-size: 10px;
+    font-size: 12px;
+    padding: 8px;
   }
 }
 
@@ -490,14 +710,31 @@
   }
 }
 
-@keyframes slide-in-with-magic {
+@keyframes slide-in-from-right {
   0% {
-    transform: translateY(100%);
+    transform: translateX(100%);
     opacity: 0;
   }
 
   100% {
-    transform: translateY(0);
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-in-with-magic {
+  0% {
+    transform: translateY(100%) scale(0.8);
+    opacity: 0;
+  }
+
+  50% {
+    transform: translateY(-10px) scale(1.05);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
@@ -581,5 +818,45 @@
   
   .rum-insights-print .no-print {
     display: none;
+  }
+}
+
+/* Responsive design for smaller screens */
+@media (width <= 1200px) {
+  .rum-chat-container {
+    width: 40vw;
+  }
+
+  body:has(.rum-chat-container.show) main {
+    width: 60vw;
+  }
+
+  body:has(.rum-chat-container.show) #deepmain {
+    width: 60vw;
+  }
+}
+
+@media (width <= 700px) {
+  .rum-chat-container .api-key-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px 8px 12px;
+  }
+
+  .rum-chat-container .analysis-section {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .rum-chat-container .analysis-section button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rum-chat-container .api-key-input input[type="password"] {
+    min-width: 0;
+    width: 100%;
   }
 }

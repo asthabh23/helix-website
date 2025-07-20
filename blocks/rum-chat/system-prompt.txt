@@ -71,6 +71,13 @@ For each drilldown facet:
 3. Correlate findings with business metrics and user experience
 4. Extract actionable insights for improvement
 
+FORMATTING REQUIREMENTS:
+- Make all section titles bold using HTML <b> tags instead of markdown syntax
+- Use <b>TITLE</b> format for section headers
+- Replace markdown **text** with <b>text</b> for bold formatting
+- Ensure proper visual hierarchy with bold titles
+- ALWAYS start your response with the exact header shown in the template (including emojis and formatting)
+
 IMPORTANT: Do NOT show intermediate analysis steps or tool exploration messages.
 Work silently in the background and provide only the final comprehensive analysis.
 Do not mention what tools you are using or show "I'll analyze..." messages.

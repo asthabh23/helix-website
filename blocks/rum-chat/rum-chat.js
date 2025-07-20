@@ -1,3 +1,4 @@
+// /ORIGINAL
 /* eslint-disable no-console */
 let messageHistory = [];
 let cachedFacetTools = null;
@@ -9,7 +10,7 @@ let fallbackSystemPromptCache = null;
 
 // Cache for analysis results - now using localStorage for persistence
 const CACHE_KEY = 'rumAnalysisCache';
-const CACHE_DURATION = 20 * 60 * 1000; // 10 minute in milliseconds
+const CACHE_DURATION = 40 * 60 * 1000; // 20 minute in milliseconds
 
 // Function to get cache from localStorage
 function getAnalysisCache() {
@@ -972,9 +973,9 @@ export default async function decorate(block) {
 
   chatInterface.innerHTML = `
     <div class="chat-header">
-      <h2>RUM Insights</h2>
+      <h2>RUM Detective</h2>
       <div class="header-buttons">
-        <button class="download-button" disabled title="Download insights as PDF (available after analysis)">📄 Download</button>
+        <button class="download-button" disabled title="Download insights as PDF (available after analysis)">📄 Download as PDF</button>
         <button class="close-button" title="Close chat">×</button>
       </div>
     </div>
@@ -1014,6 +1015,23 @@ export default async function decorate(block) {
       return;
     }
 
+    // Get URL from the dashboard input field
+    const urlInput = document.querySelector('#url');
+    const currentUrl = urlInput ? urlInput.value.trim() : '';
+    const reportTitle = currentUrl
+      ? `OpTel analysis report for ${currentUrl}`
+      : 'OpTel analysis report';
+
+    // Create filename by replacing spaces with dashes (for PDF save suggestion)
+    const filename = reportTitle.replace(/\s+/g, '-');
+
+    // Store original title and change it BEFORE creating the iframe
+    const originalTitle = document.title;
+    console.log('Original title:', originalTitle);
+    console.log('Setting title to:', filename);
+    document.title = filename;
+    console.log('Document title is now:', document.title);
+
     // Create a clean HTML content for printing
     const cleanContent = analysisContent
       .replace(/<[^>]*>/g, '') // Remove HTML tags
@@ -1024,28 +1042,93 @@ export default async function decorate(block) {
       .replace(/&quot;/g, '"')
       .trim();
 
-    // Create a new window with printable content
+    // Open a new window directly for printing with custom title
     const printWindow = window.open('', '_blank');
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>RUM Insights Analysis Report</title>
-        <link rel="stylesheet" href="/blocks/rum-chat/rum-chat.css">
+        <title>${filename}</title>
+        <meta charset="utf-8">
+        <style>
+          @media print {
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: none;
+              margin: 0;
+              padding: 20px;
+            }
+            h1 { 
+              color: #2c5aa0;
+              border-bottom: 2px solid #2c5aa0;
+              padding-bottom: 10px;
+              margin-bottom: 20px;
+            }
+            .timestamp { 
+              color: #666;
+              font-size: 14px;
+              margin-bottom: 30px;
+            }
+            .content { 
+              white-space: pre-wrap;
+              font-size: 12px;
+              line-height: 1.5;
+            }
+            @page {
+              margin: 1in;
+              size: A4;
+            }
+          }
+          @media screen {
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            h1 { 
+              color: #2c5aa0;
+              border-bottom: 2px solid #2c5aa0;
+              padding-bottom: 10px;
+            }
+            .timestamp { 
+              color: #666;
+              font-size: 14px;
+              margin-bottom: 20px;
+            }
+            .content { 
+              white-space: pre-wrap;
+              line-height: 1.6;
+            }
+          }
+        </style>
       </head>
-      <body class="rum-insights-print">
-        <button class="print-button no-print" onclick="window.print()">🖨️ Print / Save as PDF</button>
-        <h1>RUM Insights Analysis Report</h1>
+      <body>
+        <h1>${reportTitle}</h1>
         <div class="timestamp">Generated on: ${new Date().toLocaleString()}</div>
         <div class="content">${cleanContent}</div>
         <script>
-          // Auto-focus for better UX
-          window.focus();
+          // Auto-trigger print dialog when page loads
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 500);
+          };
         </script>
       </body>
       </html>
     `);
     printWindow.document.close();
+    printWindow.focus();
+
+    // Restore original title after a delay
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   downloadButton.addEventListener('click', generatePDF);
@@ -1144,7 +1227,7 @@ export default async function decorate(block) {
   if (existingApiKey) {
     apiKeyInput.value = existingApiKey;
     apiKeyInput.disabled = true;
-    saveApiKeyButton.textContent = 'Key Saved';
+    saveApiKeyButton.textContent = 'Save Key';
     saveApiKeyButton.disabled = true;
     analysisSection.style.display = 'block';
     updateCacheStatus(); // Update cache status when showing analysis section
