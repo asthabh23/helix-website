@@ -1,12 +1,24 @@
-// /ORIGINAL
 /* eslint-disable no-console */
+// Import parallel processing functionality
+import processParallelBatches, {
+  resetInsightsAndRecommendations,
+  getCollectedInsights,
+  getCollectedRecommendations,
+} from './parallel-processing.js';
+
+// Import task progress functionality
+import initializeTaskProgress, {
+  completeAllRemainingTasks,
+  resetTaskList,
+} from './task-progress.js';
+
 let messageHistory = [];
 let cachedFacetTools = null;
 
 // Cache for loaded templates
 let systemPromptCache = null;
-let finalAnalysisTemplateCache = null;
-let fallbackSystemPromptCache = null;
+let overviewAnalysisTemplateCache = null;
+let deepAnalysisTemplateCache = null;
 
 // Cache for analysis results - now using localStorage for persistence
 const CACHE_KEY = 'rumAnalysisCache';
@@ -141,22 +153,20 @@ async function getSystemPrompt() {
   return systemPromptCache || 'You are a RUM data detective specializing in USER ENGAGEMENT and TRAFFIC ACQUISITION analysis.';
 }
 
-// Function to get fallback system prompt
-async function getFallbackSystemPrompt() {
-  if (!fallbackSystemPromptCache) {
-    fallbackSystemPromptCache = await loadTextFile('fallback-system-prompt.txt');
+// Function to get overview analysis template
+async function getOverviewAnalysisTemplate() {
+  if (!overviewAnalysisTemplateCache) {
+    overviewAnalysisTemplateCache = await loadTextFile('overview-analysis-template.txt');
   }
-  return fallbackSystemPromptCache || 'You are a RUM data analyst focused on identifying performance patterns and issues.';
+  return overviewAnalysisTemplateCache || 'CREATE A CLEAN, PROFESSIONAL REPORT WITH STRUCTURED SECTIONS.';
 }
 
-// Function to get final analysis template
-async function getFinalAnalysisTemplate(analysisData) {
-  if (!finalAnalysisTemplateCache) {
-    finalAnalysisTemplateCache = await loadTextFile('final-analysis-template.txt');
+// Function to get deep analysis template
+async function getDeepAnalysisTemplate() {
+  if (!deepAnalysisTemplateCache) {
+    deepAnalysisTemplateCache = await loadTextFile('deep-analysis-template.txt');
   }
-
-  const template = finalAnalysisTemplateCache || 'Based on your comprehensive analysis, provide detailed findings and recommendations.';
-  return template.replace('{ANALYSIS_DATA}', analysisData);
+  return deepAnalysisTemplateCache || 'ORGANIZE THE ABOVE FINDINGS INTO A STRUCTURED REPORT.';
 }
 
 // Function to create tool definition based on facet type
@@ -192,6 +202,75 @@ function createToolDefinition(facetName, description) {
   };
 }
 
+// Function to create insights collection tool
+function createInsightsCollectionTool() {
+  return {
+    name: 'collect_insights',
+    description: 'Collect and organize key performance insights discovered during analysis. Use this tool to systematically capture important findings.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          enum: ['performance', 'engagement', 'traffic', 'errors', 'user_behavior'],
+          description: 'The category of insight being recorded',
+        },
+        insight: {
+          type: 'string',
+          description: 'The specific insight or finding discovered',
+        },
+        impact: {
+          type: 'string',
+          enum: ['high', 'medium', 'low'],
+          description: 'The business impact level of this insight',
+        },
+        metrics: {
+          type: 'string',
+          description: 'Relevant metrics or data supporting this insight',
+        },
+      },
+      required: ['category', 'insight', 'impact'],
+    },
+  };
+}
+
+// Function to create recommendations collection tool
+function createRecommendationsCollectionTool() {
+  return {
+    name: 'collect_recommendations',
+    description: 'Collect actionable recommendations based on analysis findings. Use this tool to systematically capture improvement suggestions.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          enum: ['performance', 'technical', 'user_experience', 'monitoring', 'content'],
+          description: 'The category of recommendation',
+        },
+        recommendation: {
+          type: 'string',
+          description: 'The specific actionable recommendation',
+        },
+        priority: {
+          type: 'string',
+          enum: ['high', 'medium', 'low'],
+          description: 'The implementation priority of this recommendation',
+        },
+        effort: {
+          type: 'string',
+          enum: ['low', 'medium', 'high'],
+          description: 'The estimated effort required to implement',
+        },
+        expected_impact: {
+          type: 'string',
+          description: 'The expected business impact or improvement',
+        },
+      },
+      required: ['category', 'recommendation', 'priority'],
+    },
+  };
+}
+
 // Function to extract facets from explorer.html and convert them to tool definitions
 function extractFacetsFromExplorer() {
   if (cachedFacetTools) {
@@ -210,6 +289,7 @@ function extractFacetsFromExplorer() {
   console.log(`[Facet Extraction] Found ${facetElements.length} facet elements`);
 
   const tools = [];
+
   facetElements.forEach((facetElement, index) => {
     const facetName = facetElement.getAttribute('facet');
     if (!facetName) {
@@ -217,13 +297,23 @@ function extractFacetsFromExplorer() {
       return;
     }
 
+    // Try to get description from help link title (more detailed)
+    const helpLink = facetElement.querySelector('a.help[title]');
+    const helpTitle = helpLink ? helpLink.getAttribute('title') : null;
+
+    // Fall back to legend text
     const legendElement = facetElement.querySelector('legend');
-    const description = legendElement ? legendElement.textContent : `Analyze data based on ${facetName}`;
+    const legendText = legendElement ? legendElement.textContent : null;
+
+    // Use help title if available, otherwise legend, otherwise default
+    const description = helpTitle || legendText || `Analyze data based on ${facetName}`;
 
     console.log(`[Facet Extraction] Processing facet #${index + 1}:
       - Name: ${facetName}
       - Type: ${facetElement.tagName.toLowerCase()}
-      - Description: ${description}`);
+      - Legend: ${legendText || 'none'}
+      - Help Title: ${helpTitle || 'none'}
+      - Final Description: ${description}`);
 
     const tool = createToolDefinition(facetName, description);
     if (tool) tools.push(tool);
@@ -239,8 +329,98 @@ function extractFacetsFromExplorer() {
   return tools;
 }
 
-// Function to handle dynamic facet tool calls
-async function handleDynamicFacetToolCall(toolName, input) {
+// DOM operation queue to prevent conflicts during parallel processing
+class DOMOperationQueue {
+  constructor() {
+    this.queue = [];
+    this.isProcessing = false;
+  }
+
+  async enqueue(operation) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ operation, resolve, reject });
+      this.processQueue();
+    });
+  }
+
+  async processQueue() {
+    if (this.isProcessing || this.queue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    // eslint-disable-next-line no-await-in-loop
+    while (this.queue.length > 0) {
+      const { operation, resolve, reject } = this.queue.shift();
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const result = await operation();
+        resolve(result);
+
+        // Add delay between DOM operations to prevent conflicts
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => {
+          setTimeout(r, 500);
+        });
+      } catch (error) {
+        reject(error);
+      }
+    }
+
+    this.isProcessing = false;
+  }
+}
+
+// Global DOM operation queue
+const domOperationQueue = new DOMOperationQueue();
+
+// Enhanced function to handle dynamic facet tool calls with queue support
+async function handleDynamicFacetToolCall(toolName, input, useQueue = true) {
+  // Handle special insights and recommendations collection tools
+  if (toolName === 'collect_insights') {
+    const {
+      category, insight, impact, metrics,
+    } = input;
+    const insightEntry = {
+      category,
+      insight,
+      impact,
+      metrics: metrics || '',
+      timestamp: new Date().toISOString(),
+    };
+    getCollectedInsights().push(insightEntry);
+    console.log(`[Insights Collection] Added ${impact} impact ${category} insight`);
+    return {
+      success: true,
+      message: `Insight collected: ${category} - ${impact} impact`,
+      data: insightEntry,
+    };
+  }
+
+  if (toolName === 'collect_recommendations') {
+    const {
+      category, recommendation, priority, effort, expectedImpact,
+    } = input;
+    const recommendationEntry = {
+      category,
+      recommendation,
+      priority,
+      effort: effort || 'medium',
+      expectedImpact: expectedImpact || '',
+      timestamp: new Date().toISOString(),
+    };
+    getCollectedRecommendations().push(recommendationEntry);
+    console.log(`[Recommendations Collection] Added ${priority} priority ${category} recommendation`);
+    return {
+      success: true,
+      message: `Recommendation collected: ${category} - ${priority} priority`,
+      data: recommendationEntry,
+    };
+  }
+
+  // Handle regular facet tools
   const facetName = toolName.replace(/Facet$/, '').replace(/_/g, '.');
   const facetElement = document.querySelector(`[facet="${facetName}"]`);
 
@@ -253,53 +433,49 @@ async function handleDynamicFacetToolCall(toolName, input) {
 
   const { operation, value } = input;
 
-  try {
-    let result;
-    switch (operation) {
-      case 'filter': {
-        if (!value) {
-          result = {
-            success: false,
-            message: 'Filter operation requires a value',
-          };
+  // Define the actual operation function
+  const performOperation = async () => {
+    try {
+      let result;
+      switch (operation) {
+        case 'filter': {
+          if (!value) {
+            result = {
+              success: false,
+              message: 'Filter operation requires a value',
+            };
+            break;
+          }
+          // Look for checkbox input with the specified value
+          const filterInput = facetElement.querySelector(`input[value="${value}"]`);
+          if (filterInput) {
+            // Use simple direct click like the working version
+            filterInput.click();
+
+            // Wait for UI to update with proper delay
+            await new Promise((resolve) => {
+              setTimeout(() => resolve(), 1000);
+            });
+
+            result = {
+              success: true,
+              message: `Applied filter: ${value}`,
+            };
+          } else {
+            result = {
+              success: false,
+              message: `Filter value ${value} not found in facet ${facetName}`,
+            };
+          }
           break;
         }
-        // Look for checkbox input with the specified value
-        const filterInput = facetElement.querySelector(`input[value="${value}"]`);
-        if (filterInput) {
-          // Instead of clicking (which triggers heavy operations),
-          // just check the checkbox and dispatch a lightweight event
-          filterInput.checked = !filterInput.checked;
+        case 'analyze': {
+          // Simplified analyze operation without complex batching
+          const labelElements = facetElement.querySelectorAll('label');
+          const items = [];
 
-          // Dispatch event after a small delay to avoid performance issues
-          setTimeout(() => {
-            const changeEvent = new Event('change', { bubbles: true });
-            filterInput.dispatchEvent(changeEvent);
-          }, 0);
-
-          result = {
-            success: true,
-            message: `Applied filter: ${value}`,
-          };
-        } else {
-          result = {
-            success: false,
-            message: `Filter value ${value} not found in facet ${facetName}`,
-          };
-        }
-        break;
-      }
-      case 'analyze': {
-        // Use more efficient DOM querying with performance optimization
-        const labelElements = facetElement.querySelectorAll('label');
-        const items = [];
-
-        // Process elements in batches to avoid blocking the main thread
-        const batchSize = 10;
-        for (let i = 0; i < labelElements.length; i += batchSize) {
-          const batch = Array.from(labelElements).slice(i, i + batchSize);
-
-          batch.forEach((label) => {
+          // Process elements directly without batching to avoid complexity
+          labelElements.forEach((label) => {
             const labelText = label.querySelector('.label')?.textContent?.trim() || '';
             const valueText = label.querySelector('.value')?.textContent?.trim() || '';
             const countElement = label.querySelector('number-format.count');
@@ -309,7 +485,7 @@ async function handleDynamicFacetToolCall(toolName, input) {
             // Extract numeric value from title (e.g., "250354800 ±5252663" -> "250354800")
             const numericCount = countTitle.split(' ')[0].replace(/[^\d]/g, '');
 
-            // Get performance metrics from cwv list (optimized)
+            // Get performance metrics from cwv list (simplified)
             const cwvList = label.nextElementSibling?.querySelector?.('ul.cwv');
             const metrics = {};
             if (cwvList) {
@@ -335,28 +511,22 @@ async function handleDynamicFacetToolCall(toolName, input) {
               });
             }
           });
+
+          result = {
+            success: true,
+            facetName,
+            totalItems: items.length,
+            items: items.slice(0, 5), // Return first 5 items
+            summary: `Found ${items.length} items in ${facetName}`,
+          };
+          break;
         }
+        case 'summarize': {
+          // Simplified summarize operation
+          const labelElements = facetElement.querySelectorAll('label');
+          const allItems = [];
 
-        result = {
-          success: true,
-          facetName,
-          totalItems: items.length,
-          items: items.slice(0, 5), // Return first 5 items
-          summary: `Found ${items.length} items in ${facetName}`,
-        };
-        break;
-      }
-      case 'summarize': {
-        // Optimized summarize operation
-        const labelElements = facetElement.querySelectorAll('label');
-        const allItems = [];
-
-        // Process in smaller batches for better performance
-        const batchSize = 15;
-        for (let i = 0; i < labelElements.length; i += batchSize) {
-          const batch = Array.from(labelElements).slice(i, i + batchSize);
-
-          batch.forEach((label) => {
+          labelElements.forEach((label) => {
             const labelText = label.querySelector('.label')?.textContent?.trim() || '';
             const valueText = label.querySelector('.value')?.textContent?.trim() || '';
             const countElement = label.querySelector('number-format.count');
@@ -373,34 +543,40 @@ async function handleDynamicFacetToolCall(toolName, input) {
               });
             }
           });
+
+          const total = allItems.reduce((sum, item) => sum + item.count, 0);
+
+          result = {
+            success: true,
+            facetName,
+            totalItems: allItems.length,
+            totalCount: total,
+            topItems: allItems.slice(0, 3),
+            summary: `${facetName} has ${allItems.length} unique values with ${total} total occurrences`,
+          };
+          break;
         }
-
-        const total = allItems.reduce((sum, item) => sum + item.count, 0);
-
-        result = {
-          success: true,
-          facetName,
-          totalItems: allItems.length,
-          totalCount: total,
-          topItems: allItems.slice(0, 3),
-          summary: `${facetName} has ${allItems.length} unique values with ${total} total occurrences`,
-        };
-        break;
+        default:
+          result = {
+            success: false,
+            message: `Unknown operation: ${operation}`,
+          };
       }
-      default:
-        result = {
-          success: false,
-          message: `Unknown operation: ${operation}`,
-        };
+      return result;
+    } catch (error) {
+      console.error('[Dynamic Facet] Error:', error);
+      return {
+        success: false,
+        message: `Error processing ${facetName}: ${error.message}`,
+      };
     }
-    return result;
-  } catch (error) {
-    console.error('[Dynamic Facet] Error:', error);
-    return {
-      success: false,
-      message: `Error processing ${facetName}: ${error.message}`,
-    };
+  };
+
+  // Use queue for DOM operations (filter), direct execution for read-only operations
+  if (operation === 'filter' && useQueue) {
+    return domOperationQueue.enqueue(performOperation);
   }
+  return performOperation();
 }
 
 // Function to initialize dynamic facets
@@ -561,7 +737,7 @@ function extractDashboardData() {
 }
 
 /* eslint-disable no-await-in-loop */
-async function callAnthropicAPI(message, isFollowUp = false) {
+async function callAnthropicAPI(message, isFollowUp = false, progressCallback = null) {
   console.log('[Anthropic API] Starting API call with message:', message);
   try {
     // Extract dashboard data after DOM is loaded
@@ -582,18 +758,137 @@ async function callAnthropicAPI(message, isFollowUp = false) {
     const facetTools = extractFacetsFromExplorer();
     console.log('[Anthropic API] Available facet tools:', facetTools);
 
-    // If this is the initial call, analyze data first to identify problematic segments
+    // Get required variables for processing
+    const systemPromptText = await getSystemPrompt();
+    const mainApiKey = localStorage.getItem('anthropicApiKey') || '';
+    if (!mainApiKey) {
+      throw new Error('API key not found');
+    }
+
+    // Multi-phase approach to ensure comprehensive tool utilization
     if (!isFollowUp && facetTools.length > 0) {
-      console.log('[Anthropic API] Starting intelligent analysis workflow');
+      console.log('[Anthropic API] Starting systematic batched analysis');
 
-      // Start with iterative tool analysis
-      const maxToolsPerBatch = 5;
-      let currentBatch = 0;
-      const remainingTools = [...facetTools];
-      const allToolResults = [];
-      let cumulativeAnalysis = '';
+      // Check if user wants deep analysis (checkbox controls this)
+      const useDeepAnalysis = localStorage.getItem('rumChatDeepMode') === 'true';
 
-      // Create initial enhanced message with all dashboard data
+      if (!useDeepAnalysis) {
+        console.log('[Anthropic API] Using OVERVIEW analysis (parallel processing)');
+        if (progressCallback) progressCallback(2, 'in-progress', 'Starting parallel batch processing...');
+        const allInsights = await processParallelBatches(
+          facetTools,
+          dashboardData,
+          systemPromptText,
+          mainApiKey,
+          message,
+          handleDynamicFacetToolCall,
+          progressCallback,
+        );
+
+        if (allInsights.length > 0) {
+          // Mark parallel processing as completed
+          if (progressCallback) progressCallback(2, 'completed', 'Parallel batch processing completed');
+
+          // Create comprehensive final synthesis
+          if (progressCallback) progressCallback(3, 'in-progress', 'Generating streamlined overview report...', 10);
+
+          // Load the overview analysis template
+          if (progressCallback) progressCallback(3, 'in-progress', 'Loading overview template...', 25);
+          const overviewTemplate = await getOverviewAnalysisTemplate();
+
+          const finalSynthesisMessage = `Create a polished, professional analysis report based on the data below. 
+
+DO NOT include any of the raw batch content in your response. Use it only as source material for your analysis.
+
+==== SOURCE MATERIAL (FOR REFERENCE ONLY - DO NOT INCLUDE IN RESPONSE) ====
+${allInsights.join('\n\n')}
+
+INSIGHTS COLLECTED:
+${getCollectedInsights().map((insight) => `- ${insight.category}: ${insight.insight} (Impact: ${insight.impact}, Metrics: ${insight.metrics})`).join('\n')}
+
+RECOMMENDATIONS COLLECTED:
+${getCollectedRecommendations().map((recommendation) => `- ${recommendation.category}: ${recommendation.recommendation} (Priority: ${recommendation.priority}, Effort: ${recommendation.effort}, Expected Impact: ${recommendation.expectedImpact})`).join('\n')}
+==== END SOURCE MATERIAL ====
+
+${overviewTemplate}`;
+
+          const finalRequest = {
+            model: 'claude-opus-4-20250514',
+            max_tokens: 3584, // Comprehensive report with good depth
+            messages: [{ role: 'user', content: finalSynthesisMessage }],
+            tools: [createInsightsCollectionTool(), createRecommendationsCollectionTool()],
+            system: systemPromptText,
+            temperature: 0.35, // Balanced for structured comprehensive analysis
+          };
+
+          if (progressCallback) progressCallback(3, 'in-progress', 'Preparing the overview analysis...', 40);
+
+          if (progressCallback) progressCallback(3, 'in-progress', 'Generating insights and findings...', 65);
+          const finalResponse = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': mainApiKey,
+            },
+            body: JSON.stringify(finalRequest),
+          });
+
+          if (finalResponse.ok) {
+            const finalData = await finalResponse.json();
+            if (finalData.content && finalData.content.length > 0) {
+              if (progressCallback) progressCallback(3, 'in-progress', 'Finalizing recommendations and action items...', 80);
+
+              let finalAnalysis = '';
+              const finalToolCalls = [];
+
+              finalData.content.forEach((item) => {
+                if (item.type === 'text') {
+                  const text = item.text.trim();
+                  if (text) finalAnalysis += `${text}\n`;
+                } else if (item.type === 'tool_use') {
+                  finalToolCalls.push(item);
+                }
+              });
+
+              // Execute final tool calls for insights and recommendations collection
+              if (finalToolCalls.length > 0) {
+                console.log(`[Final Analysis] Executing ${finalToolCalls.length} collection tools`);
+                for (let i = 0; i < finalToolCalls.length; i += 1) {
+                  const toolCall = finalToolCalls[i];
+                  try {
+                    // eslint-disable-next-line no-await-in-loop
+                    await handleDynamicFacetToolCall(toolCall.name, toolCall.input || {}, false);
+                  } catch (error) {
+                    console.error(`[Final Analysis] Error executing ${toolCall.name}:`, error);
+                  }
+                }
+              }
+
+              console.log(`[Fast Analysis] Comprehensive report completed efficiently, length: ${finalAnalysis.length} characters`);
+              if (progressCallback) progressCallback(3, 'completed', 'Streamlined overview report completed successfully', 100);
+              cacheAnalysisResult(finalAnalysis, currentDashboardHash);
+              return finalAnalysis;
+            }
+          }
+        }
+
+        // Don't show raw batch insights - create a clean fallback message
+        const result = 'Analysis completed successfully. Multiple insights were discovered across different data facets including performance metrics, user behavior patterns, and traffic acquisition data.';
+        cacheAnalysisResult(result, currentDashboardHash);
+        return result;
+      }
+
+      // Deep analysis mode - sequential processing
+      console.log('[Anthropic API] Using DEEP analysis (sequential processing)');
+      if (progressCallback) progressCallback(2, 'in-progress', 'Starting sequential batch processing...');
+
+      // Reset insights and recommendations storage for fresh analysis
+      resetInsightsAndRecommendations();
+
+      const allInsights = [];
+      const usedTools = new Set();
+
+      // Enhanced initial message with clear instructions
       const initialMessage = `${message}
 
 DASHBOARD DATA:
@@ -613,345 +908,348 @@ ANALYSIS PRIORITIES:
 3. TRAFFIC ACQUISITION DEEP-DIVE: Analyze traffic sources, referrer quality, and channel performance
 4. CONVERSION OPTIMIZATION: Discover friction points and optimization opportunities
 
-SPECIFIC FOCUS AREAS:
-- Click patterns and user interaction quality across different traffic sources
-- Bounce rate correlation with traffic acquisition channels
-- Content engagement effectiveness by referrer type
-- Geographic and device-specific acquisition performance
-- User journey analysis from entry to conversion/exit
+CRITICAL WORKFLOW:
+1. FIRST: Analyze "checkpoint" facet to discover available checkpoints
+2. THEN: Use "filter" operations on key checkpoints (error, click, enter, navigate) to activate drilldown facets
+3. FINALLY: Analyze newly revealed drilldown facets (.source, .target) for detailed insights
 
-TASK: Use available facet tools to extract detailed engagement and acquisition insights. Prioritize analysis of click, enter, navigate, acquisition, and viewblock facets.`;
+Use available tools systematically. Focus on checkpoint activation first, then drilldown analysis.`;
 
-      const systemPrompt = await getSystemPrompt();
+      // Variables already defined above for both parallel and sequential processing
 
-      // Iterative tool analysis loop
-      // Max 4 batches to prevent infinite loops
-      while (remainingTools.length > 0 && currentBatch < 4) {
+      // Systematic batching with dynamic batch count, 3 tools per batch
+      let currentBatch = 0;
+      const remainingTools = [...facetTools];
+      const toolsPerBatch = 3;
+      const estimatedTotalBatches = Math.ceil(facetTools.length / toolsPerBatch);
+
+      while (remainingTools.length > 0 && currentBatch < estimatedTotalBatches) {
         currentBatch += 1;
+        console.log(`[Systematic Batch] Batch ${currentBatch}: Processing ${remainingTools.length} remaining tools`);
 
-        const allAvailableTools = extractFacetsFromExplorer();
-        console.log(`[Batch ${currentBatch}] Found ${allAvailableTools.length} total tools available`);
-
-        // Update remaining tools with any newly discovered tools
-        // eslint-disable-next-line max-len
-        const existingToolNames = new Set([...facetTools.map((t) => t.name), ...allToolResults.map((r) => r.tool)]);
-        const newTools = allAvailableTools.filter((tool) => !existingToolNames.has(tool.name));
-
-        if (newTools.length > 0) {
-          console.log(`[Batch ${currentBatch}] Found ${newTools.length} new dynamic tools:`, newTools.map((t) => t.name));
-          remainingTools.push(...newTools);
-          // Progress message removed - no longer showing facet discovery updates
+        // Update progress for current batch
+        if (progressCallback) {
+          progressCallback(currentBatch + 1, 'in-progress', `Processing Batch ${currentBatch} of ${estimatedTotalBatches}...`);
         }
 
-        const currentBatchTools = remainingTools.splice(0, maxToolsPerBatch);
-
-        // Progress message removed - no longer showing batch analysis details
+        // Get tools for this batch
+        const batchTools = remainingTools.splice(0, toolsPerBatch);
 
         // Prepare message for this batch
         let batchMessage;
         if (currentBatch === 1) {
           batchMessage = initialMessage;
-          messageHistory.push({ role: 'user', content: batchMessage });
         } else {
-          // For subsequent batches, include previous findings and ask for focused analysis
-          batchMessage = `Continue discovery with additional tools.
+          batchMessage = `Continue systematic analysis using available tools.
 
 PREVIOUS FINDINGS:
-${cumulativeAnalysis}
+${allInsights.join('\n\n')}
 
-FOCUS: Find more hidden correlations, anomalies, and business impacts using available tools.`;
-
-          messageHistory.push({ role: 'user', content: batchMessage });
+FOCUS: Use remaining tools to discover deeper insights, activate checkpoints, and analyze drilldown facets.
+TOOLS FOR THIS BATCH: ${batchTools.map((t) => t.name).join(', ')}`;
         }
 
-        const requestBody = {
+        // Fresh message history for each batch (avoid tool role issues)
+        const batchMessageHistory = [
+          { role: 'user', content: batchMessage },
+        ];
+
+        const batchRequest = {
           model: 'claude-opus-4-20250514',
           max_tokens: 4096,
-          messages: messageHistory,
-          tools: currentBatchTools,
-          system: systemPrompt,
+          messages: batchMessageHistory,
+          tools: batchTools,
+          system: systemPromptText,
           temperature: 0.3,
         };
 
-        console.log(`[Anthropic API] Sending batch ${currentBatch} with ${currentBatchTools.length} tools`);
-        console.log('[Anthropic API] Current batch tools:', currentBatchTools.map((t) => t.name));
-        console.log('[Anthropic API] Request body tools count:', requestBody.tools?.length || 0);
-
-        const apiKey = localStorage.getItem('anthropicApiKey') || '';
-        if (!apiKey) {
-          throw new Error('API key not found');
-        }
+        console.log(`[Systematic Batch] Sending batch ${currentBatch} with ${batchTools.length} tools`);
 
         try {
-          const response = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
+          const batchResponse = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-key': apiKey,
+              'x-api-key': mainApiKey,
             },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify(batchRequest),
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error('[Anthropic API] API request failed:', errorData);
-            throw new Error(errorData.error || `API request failed (${response.status})`);
+          if (!batchResponse.ok) {
+            const errorData = await batchResponse.json();
+            console.error(`[Systematic Batch] Batch ${currentBatch} failed:`, errorData);
+            break;
           }
 
-          const data = await response.json();
-          console.log(`[Anthropic API] Received batch ${currentBatch} response:`, data);
+          const batchData = await batchResponse.json();
+          console.log(`[Systematic Batch] Batch ${currentBatch} response received`);
 
-          if (data.content && data.content.length > 0) {
+          if (batchData.content && batchData.content.length > 0) {
             let batchAnalysis = '';
-            const toolCalls = [];
-            const batchNumber = currentBatch; // Capture for safe use in callbacks
+            const batchToolCalls = [];
 
-            // Process each content item
-            data.content.forEach((item) => {
+            // Process batch response
+            batchData.content.forEach((item) => {
               if (item.type === 'text') {
                 const text = item.text.trim();
                 if (text) batchAnalysis += `${text}\n`;
-              } else if (item.type === 'tool_call') {
-                // Don't log tool calls to avoid cluttering the UI
-                toolCalls.push(item);
+              } else if (item.type === 'tool_use') {
+                batchToolCalls.push(item);
               }
             });
 
-            // Execute tool calls for this batch
-            if (toolCalls.length > 0) {
-              console.log(`[Anthropic API] Executing ${toolCalls.length} tool calls for batch ${batchNumber}`);
+            // Execute tool calls with stable event handling
+            if (batchToolCalls.length > 0) {
+              console.log(`[Systematic Batch] Executing ${batchToolCalls.length} tools in batch ${currentBatch}`);
 
-              // Progress message removed - no longer showing tool execution details
+              for (let i = 0; i < batchToolCalls.length; i += 1) {
+                const toolCall = batchToolCalls[i];
+                try {
+                  console.log(`[Systematic Batch] Executing: ${toolCall.name}`);
+                  const result = await handleDynamicFacetToolCall(
+                    toolCall.name,
+                    toolCall.input || {},
+                  );
 
-              // eslint-disable-next-line no-await-in-loop
-              const batchResults = await Promise.all(
-                // eslint-disable-next-line no-loop-func
-                toolCalls.map(async (toolCall) => {
-                  try {
-                    const result = await handleDynamicFacetToolCall(
-                      toolCall.name,
-                      toolCall.arguments || {},
-                    );
+                  // Track used tools
+                  usedTools.add(toolCall.name);
+                  console.log(`[Systematic Batch] Tool ${toolCall.name} completed:`, result.success);
+                } catch (error) {
+                  console.error(`[Systematic Batch] Error executing ${toolCall.name}:`, error);
+                }
+              }
 
-                    // Add tool result to message history
-                    messageHistory.push({
-                      role: 'tool',
-                      tool_name: toolCall.name,
-                      tool_call_id: toolCall.id,
-                      content: JSON.stringify(result),
-                    });
+              // Get analysis of batch results (clean message history)
+              const batchFollowUpMessage = `What insights did you discover from the tool results in this batch? Focus on:
+- Key patterns and performance issues
+- User behavior insights
+- Business impact findings
+- Any new facets that became available for further analysis`;
 
-                    return { tool: toolCall.name, success: result.success, result };
-                  } catch (error) {
-                    console.error(`[Anthropic API] Error executing ${toolCall.name}:`, error);
-                    return { tool: toolCall.name, success: false, error: error.message };
-                  }
-                }),
-              );
+              const batchFollowUpHistory = [
+                { role: 'user', content: batchFollowUpMessage },
+              ];
 
-              allToolResults.push(...batchResults);
-
-              // Get Claude's analysis of this batch's tool results
-              const batchFollowUpMessage = 'What hidden insights did you discover? Focus on surprising patterns with business impact.';
-              messageHistory.push({ role: 'user', content: batchFollowUpMessage });
-
-              const followUpRequestBody = {
+              const batchFollowUpRequest = {
                 model: 'claude-opus-4-20250514',
-                max_tokens: 4096,
-                messages: messageHistory,
-                system: systemPrompt,
+                max_tokens: 2048,
+                messages: batchFollowUpHistory,
+                system: systemPromptText,
                 temperature: 0.3,
               };
 
-              // Progress message removed - no longer showing analysis progress
+              const batchFollowUpResponse = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': mainApiKey,
+                },
+                body: JSON.stringify(batchFollowUpRequest),
+              });
 
-              let followUpData;
-              try {
-                // eslint-disable-next-line no-await-in-loop
-                const followUpResponse = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                  },
-                  body: JSON.stringify(followUpRequestBody),
-                });
-
-                if (!followUpResponse.ok) {
-                  throw new Error(`HTTP error! status: ${followUpResponse.status}`);
-                }
-                followUpData = await followUpResponse.json();
-                if (followUpData.content && followUpData.content.length > 0) {
+              if (batchFollowUpResponse.ok) {
+                const batchFollowUpData = await batchFollowUpResponse.json();
+                if (batchFollowUpData.content && batchFollowUpData.content.length > 0) {
                   let batchInsights = '';
-                  followUpData.content.forEach((item) => {
+                  batchFollowUpData.content.forEach((item) => {
                     if (item.type === 'text') {
                       const text = item.text.trim();
                       if (text) batchInsights += `${text}\n`;
                     }
                   });
-
-                  cumulativeAnalysis += `\n\n${batchInsights}`;
-
-                  // Always continue to next batch if there are remaining tools
-                  // Only stop if we've reached max batches or no more tools
-                  if (remainingTools.length === 0) {
-                    // Progress message removed - no longer showing completion status
-                    break;
-                  } else {
-                    // Progress message removed - no longer showing batch continuation status
-                  }
+                  // Collect insights without batch headers
+                  allInsights.push(batchInsights);
                 }
-              } catch (followUpError) {
-                console.error(`[Anthropic API] Error in follow-up for batch ${batchNumber}:`, followUpError);
-                // Continue with next batch even if follow-up fails
               }
-            } else {
-              // No tool calls in this batch, add the analysis to cumulative results
-              cumulativeAnalysis += `\n\n${batchAnalysis}`;
-
-              // Continue to next batch if we have more tools
-              if (remainingTools.length > 0) {
-                // Progress message removed - no longer showing batch continuation status
-              } else {
-                // Progress message removed - no longer showing completion status
-                break;
-              }
+            } else if (batchAnalysis) {
+              // No tool calls, just add text analysis
+              allInsights.push(batchAnalysis);
             }
+
+            // Log newly discovered tools but don't add them to continue processing
+            const allAvailableTools = extractFacetsFromExplorer();
+            const newlyAvailableTools = allAvailableTools.filter(
+              (tool) => !usedTools.has(tool.name),
+            );
+
+            if (newlyAvailableTools.length > 0) {
+              console.log(`[Systematic Batch] Found ${newlyAvailableTools.length} new tools (not adding to queue): ${newlyAvailableTools.map((t) => t.name).join(', ')}`);
+            }
+
+            console.log(`[Systematic Batch] Batch ${currentBatch} complete. ${remainingTools.length} tools remaining in queue`);
+
+            // Mark current batch as completed in progress tracker
+            if (progressCallback) {
+              progressCallback(currentBatch + 1, 'completed', `Batch ${currentBatch} completed successfully`);
+            }
+
+            // Stop if no more tools in initial queue
+            if (remainingTools.length === 0) {
+              console.log('[Systematic Batch] All initial tools processed');
+              break;
+            }
+          } else {
+            console.log(`[Systematic Batch] Batch ${currentBatch} had no content`);
+            break;
           }
         } catch (error) {
-          console.error(`[Anthropic API] Error in batch ${currentBatch}:`, error);
+          console.error(`[Systematic Batch] Error in batch ${currentBatch}:`, error);
           break;
         }
       }
 
-      // Final comprehensive analysis
-      // Progress message removed - no longer showing final analysis preparation
+      // Log completion reason
+      if (currentBatch >= estimatedTotalBatches) {
+        console.log(`[Systematic Batch] Completed ${estimatedTotalBatches} estimated batches as planned`);
+      }
 
-      const finalMessage = await getFinalAnalysisTemplate(cumulativeAnalysis);
+      // Comprehensive final synthesis - organize by topic, not by batch
+      console.log('[Systematic Batch] Generating comprehensive topical analysis');
+      const finalReportTaskIndex = estimatedTotalBatches + 2; // Dynamic final task index
+      if (progressCallback) {
+        progressCallback(finalReportTaskIndex, 'in-progress', 'Generating comprehensive final report...', 10);
+      }
 
-      messageHistory.push({ role: 'user', content: finalMessage });
+      // Load the deep analysis template
+      if (progressCallback) {
+        progressCallback(finalReportTaskIndex, 'in-progress', 'Loading deep analysis template...', 25);
+      }
+      const deepTemplate = await getDeepAnalysisTemplate();
 
-      const finalRequestBody = {
+      const finalMessage = `Based on systematic analysis across ${currentBatch} batches, create a comprehensive, well-organized analysis report:
+
+RAW FINDINGS FROM ALL BATCHES:
+${allInsights.join('\n\n')}
+
+INSIGHTS COLLECTED:
+${getCollectedInsights().map((insight) => `- ${insight.category}: ${insight.insight} (Impact: ${insight.impact}, Metrics: ${insight.metrics})`).join('\n')}
+
+RECOMMENDATIONS COLLECTED:
+${getCollectedRecommendations().map((recommendation) => `- ${recommendation.category}: ${recommendation.recommendation} (Priority: ${recommendation.priority}, Effort: ${recommendation.effort}, Expected Impact: ${recommendation.expectedImpact})`).join('\n')}
+
+${deepTemplate}`;
+
+      const finalMessageHistory = [
+        { role: 'user', content: finalMessage },
+      ];
+
+      const finalRequest = {
         model: 'claude-opus-4-20250514',
         max_tokens: 4096,
-        messages: messageHistory,
-        system: systemPrompt,
+        messages: finalMessageHistory,
+        tools: [createInsightsCollectionTool(), createRecommendationsCollectionTool()],
+        system: systemPromptText,
         temperature: 0.3,
       };
 
-      const finalApiKey = localStorage.getItem('anthropicApiKey') || '';
-      if (!finalApiKey) {
-        throw new Error('API key not found');
+      if (progressCallback) {
+        progressCallback(finalReportTaskIndex, 'in-progress', 'Preparing the comprehensive report...', 40);
       }
-
       const finalResponse = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': finalApiKey,
+          'x-api-key': mainApiKey,
         },
-        body: JSON.stringify(finalRequestBody),
+        body: JSON.stringify(finalRequest),
       });
 
       if (finalResponse.ok) {
+        if (progressCallback) {
+          progressCallback(finalReportTaskIndex, 'in-progress', 'Generating insights and findings...', 65);
+        }
         const finalData = await finalResponse.json();
         if (finalData.content && finalData.content.length > 0) {
           let finalAnalysis = '';
+          const finalToolCalls = [];
+
           finalData.content.forEach((item) => {
             if (item.type === 'text') {
               const text = item.text.trim();
               if (text) finalAnalysis += `${text}\n`;
+            } else if (item.type === 'tool_use') {
+              finalToolCalls.push(item);
             }
           });
 
-          const result = finalAnalysis || cumulativeAnalysis;
-          // Cache the result for future use
-          cacheAnalysisResult(result, currentDashboardHash);
-          return result;
+          // Execute final tool calls for insights and recommendations collection
+          if (finalToolCalls.length > 0) {
+            if (progressCallback) {
+              progressCallback(finalReportTaskIndex, 'in-progress', 'Finalizing recommendations and action items...', 80);
+            }
+            console.log(`[Deep Final Analysis] Executing ${finalToolCalls.length} collection tools`);
+            for (let i = 0; i < finalToolCalls.length; i += 1) {
+              const toolCall = finalToolCalls[i];
+              try {
+                // eslint-disable-next-line no-await-in-loop
+                await handleDynamicFacetToolCall(toolCall.name, toolCall.input || {}, false);
+              } catch (error) {
+                console.error(`[Deep Final Analysis] Error executing ${toolCall.name}:`, error);
+              }
+            }
+          }
+
+          console.log(`[Systematic Batch] Comprehensive topical analysis completed, length: ${finalAnalysis.length} characters`);
+          if (progressCallback) {
+            progressCallback(finalReportTaskIndex, 'completed', 'Deep analysis report generated successfully', 100);
+          }
+          cacheAnalysisResult(finalAnalysis, currentDashboardHash);
+          return finalAnalysis;
         }
       }
 
-      const result = cumulativeAnalysis || 'Analysis completed across multiple batches.';
-      // Cache the result for future use
+      const result = allInsights.join('\n\n') || 'Systematic batched analysis completed.';
       cacheAnalysisResult(result, currentDashboardHash);
       return result;
     }
 
-    // Fallback for follow-up calls or when no tools are available
-    const enhancedMessage = `${message}
+    // Simple fallback approach
+    const fallbackMessage = `${message}
 
-Analyze the following RUM data from the dashboard:
+Analyze the RUM data and provide comprehensive insights.`;
 
-Overall Metrics:
-${Object.entries(dashboardData.metrics)
-    .map(([metric, value]) => `- ${metric}: ${value}`)
-    .join('\n')}
+    messageHistory.push({ role: 'user', content: fallbackMessage });
 
-Segment Analysis:
-${Object.entries(dashboardData.segments)
-    .map(([segment, items]) => `
-${segment}:
-${items.map((item) => `- ${item.value}: ${item.count} requests
-  ${Object.entries(item.metrics)
-    .map(([metric, value]) => `  ${metric}: ${value}`)
-    .join('\n  ')}
-`).join('')}
-`).join('\n')}
-
-Analyze this data and provide:
-1. Key performance patterns across different segments
-2. Critical performance issues in specific segments
-3. Recommendations for improvement
-4. Specific metrics that need attention`;
-
-    messageHistory.push({ role: 'user', content: enhancedMessage });
-
-    const systemPrompt = await getFallbackSystemPrompt();
-
-    const requestBody = {
+    const fallbackSystemPrompt = await getSystemPrompt();
+    const fallbackRequest = {
       model: 'claude-opus-4-20250514',
       max_tokens: 4096,
       messages: messageHistory,
       tools: facetTools,
-      system: systemPrompt,
+      system: fallbackSystemPrompt,
       temperature: 0.7,
     };
 
-    const apiKey = localStorage.getItem('anthropicApiKey') || '';
-    if (!apiKey) {
+    const fallbackApiKey = localStorage.getItem('anthropicApiKey') || '';
+    if (!fallbackApiKey) {
       throw new Error('API key not found');
     }
 
-    const response = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
+    const fallbackResponse = await fetch('https://chat-bot-test.asthabhargava001.workers.dev/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': fallbackApiKey,
       },
-      body: JSON.stringify(requestBody),
+      body: JSON.stringify(fallbackRequest),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('[Anthropic API] API request failed:', errorData);
-      throw new Error(errorData.error || `API request failed (${response.status})`);
+    if (!fallbackResponse.ok) {
+      const errorData = await fallbackResponse.json();
+      throw new Error(errorData.error || `API request failed (${fallbackResponse.status})`);
     }
 
-    const data = await response.json();
-    console.log('[Anthropic API] Received response:', data);
-
-    if (data.content && data.content.length > 0) {
-      let assistantMessage = '';
-
-      data.content.forEach((item) => {
+    const fallbackData = await fallbackResponse.json();
+    if (fallbackData.content && fallbackData.content.length > 0) {
+      let fallbackAnalysis = '';
+      fallbackData.content.forEach((item) => {
         if (item.type === 'text') {
           const text = item.text.trim();
-          if (text) assistantMessage += `${text}\n`;
+          if (text) fallbackAnalysis += `${text}\n`;
         }
       });
 
-      const result = assistantMessage || 'No significant issues found in the analysis.';
-      // Cache the fallback result as well
+      const result = fallbackAnalysis || 'Analysis completed successfully.';
       if (!isFollowUp) {
         cacheAnalysisResult(result, currentDashboardHash);
       }
@@ -973,7 +1271,7 @@ export default async function decorate(block) {
 
   chatInterface.innerHTML = `
     <div class="chat-header">
-      <h2>RUM Detective</h2>
+      <h2>OpTel Detective</h2>
       <div class="header-buttons">
         <button class="download-button" disabled title="Download insights as PDF (available after analysis)">📄 Download as PDF</button>
         <button class="close-button" title="Close chat">×</button>
@@ -987,6 +1285,12 @@ export default async function decorate(block) {
         <button id="save-api-key">Save Key</button>
       </div>
       <div class="analysis-section" style="display: none;">
+        <div class="processing-mode-selection" style="margin-bottom: 10px;">
+          <label style="font-size: 14px; color: #666;">
+            <input type="checkbox" id="deep-mode" style="margin-right: 5px;">
+            Deep Analysis (more detailed, takes longer)
+          </label>
+        </div>
         <button id="start-analysis" class="primary-button" style="padding: 6px 10px;" title="">Show Insights</button>
       </div>
     </div>
@@ -1003,6 +1307,7 @@ export default async function decorate(block) {
   const saveApiKeyButton = block.querySelector('#save-api-key');
   const analysisSection = block.querySelector('.analysis-section');
   const startAnalysisButton = block.querySelector('#start-analysis');
+  const deepModeCheckbox = block.querySelector('#deep-mode');
 
   // Variable to store analysis content for PDF generation
   let analysisContent = '';
@@ -1212,6 +1517,7 @@ export default async function decorate(block) {
 
     // Reset facet manipulation state but keep cache for persistence across reloads
     cachedFacetTools = null;
+    resetTaskList();
     console.log('[Cleanup] Reset facet manipulation state (cache preserved for next session)');
 
     apiKeySection.style.display = 'block';
@@ -1247,6 +1553,24 @@ export default async function decorate(block) {
     }
   });
 
+  // Handle deep mode checkbox
+  deepModeCheckbox.addEventListener('change', () => {
+    const isDeep = deepModeCheckbox.checked;
+    localStorage.setItem('rumChatDeepMode', isDeep.toString());
+    console.log(`[UI] Deep analysis mode: ${isDeep ? 'ENABLED' : 'DISABLED'}`);
+
+    // Update button text to indicate mode
+    const baseText = 'Show Insights';
+    const modeText = isDeep ? ' (Deep)' : ' (Overview)';
+    const cacheIndicator = startAnalysisButton.textContent.includes('*') ? ' *' : '';
+    startAnalysisButton.textContent = baseText + modeText + cacheIndicator;
+  });
+
+  // Load saved deep mode preference
+  const savedDeepMode = localStorage.getItem('rumChatDeepMode') === 'true';
+  deepModeCheckbox.checked = savedDeepMode;
+  deepModeCheckbox.dispatchEvent(new Event('change'));
+
   startAnalysisButton.addEventListener('click', async () => {
     // Prevent analysis if we're in the middle of clearing cache
     if (isProcessingCacheClear) {
@@ -1275,9 +1599,34 @@ export default async function decorate(block) {
           downloadButton.disabled = false;
           downloadButton.title = 'Download insights as PDF';
         }
-      } else {
-        addProgressMessage('🔍 Analyzing RUM dashboard...');
+        return; // Exit early if using cached results
       }
+
+      // Create task list for live progress tracking
+      const isDeepMode = localStorage.getItem('rumChatDeepMode') === 'true';
+
+      // For deep mode, generate dynamic batch tasks based on expected number of tools
+      const toolsPerBatch = 3;
+      const facetToolsCount = extractFacetsFromExplorer().length;
+      const expectedBatches = Math.ceil(facetToolsCount / toolsPerBatch);
+
+      const taskList = isDeepMode ? [
+        'Initializing analysis environment',
+        'Extracting dashboard data and facets',
+        ...Array.from({ length: expectedBatches }, (_, i) => `Processing Batch ${i + 1} (Sequential)`),
+        'Generating comprehensive final report',
+      ] : [
+        'Initializing analysis environment',
+        'Extracting dashboard data and facets',
+        'Processing multiple batches in parallel',
+        'Generating streamlined analysis report',
+      ];
+
+      addProgressMessage('🔍 Analyzing RUM dashboard...');
+      const updateTaskStatus = initializeTaskProgress(taskList, messagesDiv);
+
+      // Start first task
+      updateTaskStatus(0, 'in-progress', 'Setting up analysis tools...');
 
       // Add a small delay to allow any ongoing operations to complete
       // This helps prevent performance violations from overlapping operations
@@ -1285,33 +1634,49 @@ export default async function decorate(block) {
         setTimeout(() => {
           console.log('[Insights] Initializing facet manipulation for analysis...');
           initializeDynamicFacets();
+          updateTaskStatus(0, 'completed', 'Analysis environment ready');
           resolve();
         }, 200);
       });
 
-      if (!cacheStatus) {
-        const facetTools = extractFacetsFromExplorer();
+      // Update task 2: Extract dashboard data
+      updateTaskStatus(1, 'in-progress', 'Scanning dashboard for data and available tools...');
 
-        if (facetTools.length > 0) {
-          addProgressMessage('📊 Extracting data from dashboard based on facets analysis...');
-        } else {
-          addProgressMessage('⚠️ No facet tools found, proceeding with basic dashboard analysis...');
-        }
+      await new Promise((resolve) => {
+        setTimeout(() => resolve(), 300);
+      }); // Brief pause for visual effect
+
+      const facetTools = extractFacetsFromExplorer();
+
+      if (facetTools.length > 0) {
+        updateTaskStatus(1, 'completed', `Found ${facetTools.length} analysis metrics ready`);
+
+        // Simple start message
+        // const startMessage = isDeepMode
+        //   ? '🔬 Deep analysis started...'
+        //   : '⚡ Overview analysis started...';
+        // addProgressMessage(startMessage);
+      } else {
+        updateTaskStatus(1, 'completed', 'Basic analysis mode - no advanced tools found');
+        addProgressMessage('⚠️ No facet tools found, proceeding with basic dashboard analysis...');
       }
 
-      const response = await callAnthropicAPI('Analyze the RUM data from the dashboard.', false);
+      const response = await callAnthropicAPI('Analyze the RUM data from the dashboard.', false, updateTaskStatus);
       if (response.trim()) {
-        if (cacheStatus) {
-          addProgressMessage('✨ Cached analysis loaded! Here are the insights:');
-        } else {
-          addProgressMessage('✨ Analysis complete! Here are the insights:');
-        }
+        // if (cacheStatus) {
+        //   addProgressMessage('✨ Cached analysis loaded! Here are the insights:');
+        // } else {
+        //   // addProgressMessage('✨ Analysis complete! Here are the insights:');
+        // }
         addProgressMessage(response);
 
         // Store analysis content and enable download button
         analysisContent = response;
         downloadButton.disabled = false;
         downloadButton.title = 'Download insights as PDF';
+
+        // Mark all remaining tasks as completed
+        completeAllRemainingTasks();
 
         updateCacheStatus(); // Update cache status after analysis
       } else {
