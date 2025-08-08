@@ -167,11 +167,12 @@ body:has(.rum-chat-container.show) #deepmain {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 20px 24px 16px;
+  padding: 20px 24px;
   background: #f8f9fa;
   border-radius: 0 0 12px 12px;
   box-shadow: 0 2px 8px rgb(0 0 0 / 6%);
   margin-bottom: 8px;
+  flex-shrink: 0; /* Prevent this section from shrinking */
 }
 
 .rum-chat-container .api-key-input {
@@ -248,12 +249,12 @@ body:has(.rum-chat-container.show) #deepmain {
 }
 
 .rum-chat-container #messages {
-  height: calc(100vh - 200px);
+  flex-grow: 1;
   overflow-y: auto;
   margin-bottom: 15px;
   padding: 10px;
   border: 1px solid #eee;
-  flex-grow: 1;
+  min-height: 0; /* Allow flex item to shrink below its content size */
 }
   
 .message {
@@ -349,6 +350,7 @@ body:has(.rum-chat-container.show) #deepmain {
   min-height: 60px;
   position: relative;
   z-index: 10;
+  flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .chat-header h2 {
@@ -543,7 +545,8 @@ body:has(.rum-chat-container.show) #deepmain {
   }
 
   .rum-chat-container #messages {
-    height: calc(100vh - 150px);
+    flex-grow: 1;
+    min-height: 0;
   }
 
   .message table {
