@@ -190,7 +190,10 @@ function updateDataFacets(filterText, params, checkpoint) {
 
   dataChunks.addFacet('userAgent', userAgent, 'some', 'none');
 
-  dataChunks.addFacet('url', facets.url, 'some', 'never');
+  dataChunks.addFacet('rawURL', facets.url, 'some', 'never');
+  dataChunks.addClusterFacet('url', 'rawURL', {
+    count: Math.log10(dataChunks.facets.rawURL.length),
+  });
 
   dataChunks.addFacet('vitals', vitals);
 
@@ -433,7 +436,11 @@ const io = new IntersectionObserver((entries) => {
 
     herochart.render();
 
-    elems.filterInput.value = params.get('filter');
+    // Sanitize filter parameter to prevent XSS
+    const filterValue = params.get('filter') || '';
+    // Remove any HTML tags and dangerous characters that could cause XSS
+    const sanitizedFilter = filterValue.replace(/[<>"']/g, '');
+    elems.filterInput.value = sanitizedFilter;
     elems.viewSelect.value = {
       value: view,
       from: startDate,
