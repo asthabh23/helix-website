@@ -201,14 +201,11 @@ function updateDataFacets(filterText, params, checkpoint) {
 
   dataChunks.addFacet('type', (bundle) => bundle.hostType);
 
-<<<<<<< Updated upstream
-=======
   dataChunks.addFacet(
     'conversions',
     (bundle) => (dataChunks.hasConversion(bundle, conversionSpec) ? 'converted' : 'not-converted'),
   );
 
->>>>>>> Stashed changes
   dataChunks.addFacet('userAgent', userAgent, 'some', 'none');
 
   dataChunks.addFacet('rawURL', facets.url, 'some', 'never');
