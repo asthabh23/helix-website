@@ -201,8 +201,6 @@ function updateDataFacets(filterText, params, checkpoint) {
 
   dataChunks.addFacet('type', (bundle) => bundle.hostType);
 
-  dataChunks.addFacet('checkpoint', facets.checkpoint, 'every', 'none');
-
   dataChunks.addFacet(
     'conversions',
     (bundle) => (dataChunks.hasConversion(bundle, conversionSpec) ? 'converted' : 'not-converted'),
@@ -507,9 +505,14 @@ const io = new IntersectionObserver((entries) => {
       loadData(elems.viewSelect.value).then(draw);
     }
 
+    let filterInputDebounce;
+    const debounceTimeout = 1000;
     elems.filterInput.addEventListener('input', () => {
-      updateState();
-      draw();
+      clearTimeout(filterInputDebounce);
+      filterInputDebounce = setTimeout(() => {
+        updateState();
+        draw();
+      }, debounceTimeout);
     });
 
     elems.viewSelect.addEventListener('change', () => {
@@ -524,3 +527,6 @@ const io = new IntersectionObserver((entries) => {
 });
 
 io.observe(section);
+
+// Export draw function globally for report generator
+window.slicerDraw = draw;
