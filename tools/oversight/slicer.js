@@ -499,3 +499,6 @@ const io = new IntersectionObserver((entries) => {
 });
 
 io.observe(section);
+
+// Export draw function globally for report generator
+window.slicerDraw = draw;
