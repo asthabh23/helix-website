@@ -459,10 +459,12 @@ figcaption > span {
 .quick-filter {
   padding: 12px 0 8px;
   display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.quick-filter input {
-  width: 100%;
+.quick-filter input[type="text"] {
+  flex: 1;
   border: none;
   border-bottom: 2px solid #ccc;
   border-radius: 0;
