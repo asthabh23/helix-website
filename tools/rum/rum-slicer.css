@@ -127,7 +127,7 @@ main .title url-selector input {
   color: var(--spectrum-gray-700);
 }
 
-.title button:not(.insights-icon) {
+.title button {
   color: var(--dark-blue);
   border: 2px solid currentcolor;
   border-radius: 32px;
