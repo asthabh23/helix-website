@@ -71,31 +71,18 @@ function handleGenerationError(body, progress, status, btn, origText, err) {
   const isAuth = err.isAuthError;
   const isFatal = err.isFatalError;
 
-  if (isAuth) {
-    localStorage.removeItem('awsBedrockToken');
-    const tokenInput = body.querySelector('#report-bedrock-token');
-    if (tokenInput) {
-      tokenInput.disabled = false;
-      tokenInput.value = '';
-      tokenInput.style.borderColor = '#ff4444';
-      tokenInput.focus();
-    }
-    const infoBox = body.querySelector('.report-info');
-    if (infoBox) infoBox.style.display = 'none';
-  }
-
   // Display error message with appropriate context
   let errorMessage;
   if (isAuth) {
-    errorMessage = err.message;
+    errorMessage = 'Authentication failed. Please ensure you have a valid RUM admin token.';
   } else if (isFatal) {
-    errorMessage = err.message; // Already includes "Bedrock API error: 503..."
+    errorMessage = err.message;
   } else {
     errorMessage = `Error: ${err.message}`;
   }
 
   showStatus(status, 'error', errorMessage);
-  updateButtonState(btn, false, isAuth ? 'Save Token & Generate' : origText);
+  updateButtonState(btn, false, origText);
 }
 
 /** Generate the RUM analysis report */

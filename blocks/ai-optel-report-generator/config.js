@@ -3,11 +3,12 @@
  */
 
 export const AI_MODELS = {
-  BEDROCK_MODEL_ID: 'global.anthropic.claude-opus-4-5-20251101-v1:0',
+  BEDROCK_MODEL_ID: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
 };
 
 export const BEDROCK_CONFIG = {
-  REGION: 'us-east-1',
+  // CI URL for testing PR #466 - change back to 'https://bundles.aem.page/bedrock' for production
+  PROXY_ENDPOINT: 'https://lqmig3v5eb.execute-api.us-east-1.amazonaws.com/helix3/rum-bundler/ci22488299027/bedrock',
   MAX_TOKENS: 4096,
   TEMPERATURE: 0.7,
 };
@@ -35,7 +36,6 @@ export const PATHS = {
 };
 
 export const STORAGE_KEYS = {
-  BEDROCK_TOKEN: 'awsBedrockToken',
   VIEWED_REPORTS: 'viewedReports',
   SOURCE_REPORT: 'optel-detective-source-report',
 };

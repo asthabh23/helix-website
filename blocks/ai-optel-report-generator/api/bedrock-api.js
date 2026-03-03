@@ -1,16 +1,19 @@
 /**
- * AWS Bedrock API Integration
+ * AWS Bedrock API Integration via RUM Bundler Proxy
  */
 
 import { AI_MODELS, BEDROCK_CONFIG } from '../config.js';
+import { getAdminToken, hasAdminToken } from '../rum-admin-auth.js';
 
-const ENDPOINT = `https://bedrock-runtime.${BEDROCK_CONFIG.REGION}.amazonaws.com/model/${AI_MODELS.BEDROCK_MODEL_ID}/converse`;
 const MAX_RETRIES = 3;
+const ENDPOINT = BEDROCK_CONFIG.PROXY_ENDPOINT;
 
 const transformContentItem = (item) => {
   if (item.type === 'text') return { text: item.text };
   if (item.type === 'tool_use') {
-    return { toolUse: { toolUseId: item.id, name: item.name, input: item.input || {} } };
+    return {
+      type: 'tool_use', id: item.id, name: item.name, input: item.input || {},
+    };
   }
   if (item.type === 'tool_result') {
     return {
@@ -94,7 +97,7 @@ async function makeRequest(requestBody, bedrockToken) {
       type: 'message',
       role: 'assistant',
       content: data.output.message.content.map(transformResponseContent),
-      model: BEDROCK_CONFIG.MODEL_ID,
+      model: AI_MODELS.BEDROCK_MODEL_ID,
       stop_reason: data.stopReason === 'end_turn' ? 'end_turn' : data.stopReason,
       usage: {
         input_tokens: data.usage?.inputTokens || 0,
@@ -138,5 +141,4 @@ export async function callBedrockAPI(params, bedrockToken) {
   return retryWithBackoff(() => makeRequest(buildRequestBody(params), bedrockToken));
 }
 
-export const hasBedrockToken = () => !!localStorage.getItem('awsBedrockToken')?.trim();
-export const getBedrockToken = () => localStorage.getItem('awsBedrockToken');
+export { getAdminToken as getBedrockToken, hasAdminToken as hasBedrockToken };

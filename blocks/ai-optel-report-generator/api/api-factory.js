@@ -1,8 +1,8 @@
 /**
- * API Factory - AWS Bedrock Integration
+ * API Factory - AWS Bedrock Integration via RUM Bundler Proxy
  */
 
-import { callBedrockAPI, hasBedrockToken, getBedrockToken } from './bedrock-api.js';
+import { callBedrockAPI, hasBedrockToken } from './bedrock-api.js';
 
 export function getApiProvider() {
   if (hasBedrockToken()) return { type: 'bedrock', hasToken: true };
@@ -11,9 +11,9 @@ export function getApiProvider() {
 
 export async function callAI(params) {
   if (!hasBedrockToken()) {
-    throw new Error('AWS Bedrock token not found. Please configure your token in the settings.');
+    throw new Error('RUM admin token not found. Please ensure you are logged in.');
   }
-  return callBedrockAPI(params, getBedrockToken());
+  return callBedrockAPI(params);
 }
 
 export function getProviderName() {
