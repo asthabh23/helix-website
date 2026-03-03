@@ -81,6 +81,8 @@ const buildRequestBody = (params) => {
 };
 
 async function makeRequest(requestBody, bedrockToken) {
+  console.log('[Bedrock] Making request to:', ENDPOINT);
+  console.log('[Bedrock] Request body:', JSON.stringify(requestBody, null, 2));
   const response = await fetch(ENDPOINT, {
     method: 'POST',
     headers: {
@@ -90,8 +92,10 @@ async function makeRequest(requestBody, bedrockToken) {
     body: JSON.stringify(requestBody),
   });
 
+  console.log('[Bedrock] Response status:', response.status);
   if (response.ok) {
     const data = await response.json();
+    console.log('[Bedrock] Response data:', data);
     return {
       id: `bedrock-${Date.now()}`,
       type: 'message',
