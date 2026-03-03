@@ -7,8 +7,7 @@ export const AI_MODELS = {
 };
 
 export const BEDROCK_CONFIG = {
-  // CI URL for testing PR #466 - change back to 'https://bundles.aem.page/bedrock' for production
-  PROXY_ENDPOINT: 'https://lqmig3v5eb.execute-api.us-east-1.amazonaws.com/helix3/rum-bundler/ci22488299027/bedrock',
+  PROXY_ENDPOINT: 'https://bundles.aem.page/bedrock',
   MAX_TOKENS: 4096,
   TEMPERATURE: 0.7,
 };
