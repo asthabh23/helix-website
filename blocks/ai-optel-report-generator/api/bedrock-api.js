@@ -112,7 +112,7 @@ async function makeRequest(requestBody, bedrockToken) {
 
   if (response.status === 401 || response.status === 403) {
     const authError = new Error(
-      'Invalid or expired AWS Bedrock token. Please enter valid token to generate the report.',
+      'Invalid or expired RUM admin token. Please log in again.',
     );
     authError.isAuthError = true;
     throw authError;
@@ -140,9 +140,10 @@ async function retryWithBackoff(fn, attempt = 0) {
   }
 }
 
-export async function callBedrockAPI(params, bedrockToken) {
-  if (!bedrockToken) throw new Error('AWS Bedrock token not provided');
-  return retryWithBackoff(() => makeRequest(buildRequestBody(params), bedrockToken));
+export async function callBedrockAPI(params) {
+  const token = getAdminToken();
+  if (!token) throw new Error('RUM admin token not found. Please ensure you are logged in.');
+  return retryWithBackoff(() => makeRequest(buildRequestBody(params), token));
 }
 
 export { getAdminToken as getBedrockToken, hasAdminToken as hasBedrockToken };
