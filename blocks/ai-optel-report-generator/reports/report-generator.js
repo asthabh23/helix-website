@@ -4,6 +4,7 @@
 
 import runCompleteRumAnalysis from '../core/analysis-engine.js';
 import { resetCachedFacetTools } from '../core/facet-manager.js';
+import { resetUsageTracker, submitUsage } from '../api/bedrock-api.js';
 import {
   createCircularProgress,
   initializeStepProgress,
@@ -90,6 +91,10 @@ export default async function generateReport(statusDiv, button, modal) {
   const originalText = button.textContent;
   updateButtonState(button, true, 'Generating...');
 
+  // Reset usage tracker for this report
+  resetUsageTracker();
+  const reportId = `report_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
   statusDiv.style.display = 'none';
   const progressContainer = createCircularProgress();
   const modalBody = modal.querySelector('.report-modal-body');
@@ -125,6 +130,9 @@ export default async function generateReport(statusDiv, button, modal) {
       .forEach((k) => url.searchParams.delete(k));
     window.history.replaceState({}, '', url);
     if (typeof window.slicerDraw === 'function') await window.slicerDraw();
+
+    // Submit usage data for tracking
+    await submitUsage(reportId);
 
     setTimeout(() => {
       showReportResults(modalBody, analysisResult);
