@@ -3,7 +3,8 @@
  */
 
 export const AI_MODELS = {
-  BEDROCK_MODEL_ID: 'us.anthropic.claude-opus-4-5-20251101-v1:0',
+  BEDROCK_MODEL_ID: 'us.anthropic.claude-opus-4-6-v1',
+  SYNTHESIS_MODEL_ID: 'us.anthropic.claude-opus-4-6-v1',
 };
 
 export const BEDROCK_CONFIG = {
@@ -23,6 +24,7 @@ export const DA_CONFIG = {
 export const API_CONFIG = {
   BATCH_MAX_TOKENS: 2048,
   FOLLOWUP_MAX_TOKENS: 3072,
+  SYNTHESIS_MAX_TOKENS: 7500,
   BATCH_TEMPERATURE: 0.35,
   FOLLOWUP_TEMPERATURE: 0.3,
 };
